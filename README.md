@@ -30,7 +30,7 @@ func main() {
         Token: "API Token",
     }
     
-    c := client.NewClient("https://accounts.ana.st", auth, nil)
+    c := client.NewClient(auth, nil)
     ctx := context.Background()
 
     // 은교가 은교리 특검 문서를 확인할 수 있는지
