@@ -48,7 +48,7 @@ type Authenticator interface {
 	Authenticate(req *http.Request) error
 }
 
-// BearerTokenAuth Bearer 토큰 인증
+// BearerTokenAuth Bearer 토큰 인증 (API 토큰용 - Deprecated)
 type BearerTokenAuth struct {
 	Token string
 }
@@ -59,6 +59,68 @@ func (b *BearerTokenAuth) Authenticate(req *http.Request) error {
 		return fmt.Errorf("bearer token is empty")
 	}
 	req.Header.Set("Authorization", "Bearer "+b.Token)
+	return nil
+}
+
+// OAuthTokenAuth OAuth 사용자 토큰 인증 (권장)
+type OAuthTokenAuth struct {
+	AccessToken string
+}
+
+// Authenticate 요청에 OAuth 사용자 토큰을 추가합니다
+func (o *OAuthTokenAuth) Authenticate(req *http.Request) error {
+	if o.AccessToken == "" {
+		return fmt.Errorf("oauth access token is empty")
+	}
+	req.Header.Set("Authorization", "Bearer "+o.AccessToken)
+	return nil
+}
+
+// TokenProvider 동적으로 토큰을 제공하는 인터페이스
+// 매 요청마다 새로운 클라이언트를 생성하지 않고 토큰만 동적으로 요청을 보낼 수 있습니다람쥐
+type TokenProvider interface {
+	GetToken(ctx context.Context) (string, error)
+}
+
+// DynamicTokenAuth 동적 토큰 제공자를 사용한 인증
+// 하나의 클라이언트를 재사용하면서 요청마다 다른 토큰 사용 가능
+type DynamicTokenAuth struct {
+	Provider TokenProvider
+}
+
+// Authenticate 요청 시점에 토큰을 가져와서 인증합니다
+func (d *DynamicTokenAuth) Authenticate(req *http.Request) error {
+	token, err := d.Provider.GetToken(req.Context())
+	if err != nil {
+		return fmt.Errorf("failed to get token: %w", err)
+	}
+	if token == "" {
+		return fmt.Errorf("token is empty")
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	return nil
+}
+
+// ContextTokenAuth 컨텍스트에서 토큰을 가져오는 인증 (효율적인 방식)
+// 요청별로 context에 토큰을 담아 전달
+type ContextTokenAuth struct{}
+
+type contextKey string
+
+const tokenContextKey contextKey = "anamericano_token"
+
+// WithToken 컨텍스트에 토큰을 추가합니다
+func WithToken(ctx context.Context, token string) context.Context {
+	return context.WithValue(ctx, tokenContextKey, token)
+}
+
+// Authenticate 컨텍스트에서 토큰을 가져와 인증합니다
+func (c *ContextTokenAuth) Authenticate(req *http.Request) error {
+	token, ok := req.Context().Value(tokenContextKey).(string)
+	if !ok || token == "" {
+		return fmt.Errorf("no token found in context")
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
 	return nil
 }
 
@@ -98,10 +160,21 @@ func (e *APIError) IsBadRequest() bool {
 
 // NewClient 새로운 권한 API 클라이언트를 생성합니다
 //
-// 예시:
+// 컨텍스트 기반 인증 (권장):
 //
-//	auth := &client.BearerTokenAuth{Token: "토큰"}
-//	c := client.NewClient(auth, nil)
+//	client := anamericano.NewClient(&anamericano.ContextTokenAuth{}, nil)
+//	ctx := anamericano.WithToken(context.Background(), userToken)
+//	resp, err := client.CheckPermission(ctx, req)
+//
+// OAuth 토큰 사용 (고정 토큰):
+//
+//	auth := &anamericano.OAuthTokenAuth{AccessToken: "oauth_access_token"}
+//	c := anamericano.NewClient(auth, nil)
+//
+// 동적 토큰 제공자 사용 (권장):
+//
+//	auth := &anamericano.DynamicTokenAuth{Provider: yourTokenProvider}
+//	c := anamericano.NewClient(auth, nil)
 func NewClient(auth Authenticator, opts *ClientOptions) *Client {
 	if opts == nil {
 		opts = &ClientOptions{

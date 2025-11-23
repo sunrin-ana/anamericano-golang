@@ -13,6 +13,43 @@ go get github.com/sunrin-ana/anamericano-golang
 
 ## 빠른 시작
 
+### 사용법 (요청마다 다른 토큰 - 권장)
+
+```go
+package main
+
+import (
+    "context"
+    "net/http"
+    
+    "github.com/sunrin-ana/anamericano-golang"
+)
+
+// 전역으로 하나의 클라이언트만 생성 (매우 은교리특검적)
+var permissionClient = anamericano.NewClient(&anamericano.ContextTokenAuth{}, nil)
+
+func checkPermissionHandler(w http.ResponseWriter, r *http.Request) {
+    // 요청 헤더에서 사용자 토큰 추출
+    userToken := r.Header.Get("Authorization")
+    
+    // 컨텍스트에 토큰 추가
+    ctx := anamericano.WithToken(r.Context(), userToken)
+    
+    // 동일한 클라이언트로 모든 요청 처리
+    resp, err := permissionClient.CheckPermission(ctx, &anamericano.PermissionCheckRequest{
+        SubjectType:     "user",
+        SubjectID:       "hanul",
+        Relation:        "viewer",
+        ObjectNamespace: "document",
+        ObjectID:        "eungyolee-teukcom",
+    })
+    
+    // ...
+}
+```
+
+### 기존 사용법 (고정 토큰)
+
 ```go
 package main
 
@@ -21,20 +58,19 @@ import (
     "fmt"
     "log"
     
-    "github.com/sunrin-ana/anamericano-golang/client"
+    "github.com/sunrin-ana/anamericano-golang"
 )
 
 func main() {
-    // AMS에 의해 발급된 API 토큰이 필요합니다
-    auth := &client.BearerTokenAuth{
-        Token: "API Token",
+    // OAuth 사용자 토큰 사용 (권장)
+    auth := &anamericano.OAuthTokenAuth{
+        AccessToken: "oauth_access_token",
     }
     
-    c := client.NewClient(auth, nil)
+    c := anamericano.NewClient(auth, nil)
     ctx := context.Background()
 
-    // 은교가 은교리 특검 문서를 확인할 수 있는지
-    canView, err := c.CheckPermission(ctx, &client.PermissionCheckRequest{
+    canView, err := c.CheckPermission(ctx, &anamericano.PermissionCheckRequest{
         SubjectType:     "user",
         SubjectID:       "eungyolee",
         Relation:        "viewer",
@@ -64,16 +100,56 @@ func main() {
 
 ### Client 생성
 
+#### 방법 1: 컨텍스트 기반 (가장 효율적 - 권장)
 ```go
-// 기본 속성으로 시작
-client := client.NewClient(auth, nil)
+// 하나의 클라이언트를 재사용하고 요청마다 다른 토큰 사용
+client := anamericano.NewClient(&anamericano.ContextTokenAuth{}, nil)
 
-// 엄준ㅇ식하게 속성 변경하기
-client := client.NewClient(auth, &client.ClientOptions{
+// 각 요청마다 컨텍스트에 토큰 전달
+ctx := anamericano.WithToken(context.Background(), userToken)
+resp, err := client.CheckPermission(ctx, req)
+```
+
+#### 방법 2: 고정 토큰
+```go
+// OAuth 사용자 토큰
+auth := &anamericano.OAuthTokenAuth{
+    AccessToken: "oauth_access_token",
+}
+client := anamericano.NewClient(auth, nil)
+
+// 또는 API 토큰 (레거시)
+auth := &anamericano.BearerTokenAuth{
+    Token: "api_token",
+}
+client := anamericano.NewClient(auth, nil)
+```
+
+#### 방법 3: 동적 토큰 제공자
+```go
+// 커스텀 토큰 제공자 구현
+type MyTokenProvider struct {}
+
+func (p *MyTokenProvider) GetToken(ctx context.Context) (string, error) {
+    // 데이터베이스, 캐시 등에서 토큰 가져오기
+    return "dynamic_token", nil
+}
+
+auth := &anamericano.DynamicTokenAuth{
+    Provider: &MyTokenProvider{},
+}
+client := anamericano.NewClient(auth, nil)
+```
+
+#### 커스텀 옵션
+
+```go
+// 커스텀 옵션으로 생성
+client := anamericano.NewClient(auth, &anamericano.ClientOptions{
     Timeout:    30 * time.Second,
     MaxRetries: 3,
     RetryDelay: 1 * time.Second,
-    Logger:     &client.DefaultLogger{},
+    Logger:     &anamericano.DefaultLogger{},
 })
 ```
 
@@ -84,7 +160,7 @@ client := client.NewClient(auth, &client.ClientOptions{
 주체가 객체에 대해 권한이 있는지 확인하기
 
 ```go
-resp, err := client.CheckPermission(ctx, &client.PermissionCheckRequest{
+resp, err := client.CheckPermission(ctx, &anamericano.PermissionCheckRequest{
     SubjectType:     "user",
     SubjectID:       "eungyolee",
     Relation:        "viewer",
@@ -102,7 +178,7 @@ if resp.Allowed {
 주체에게 객체에 대한 권한을 업데이트
 
 ```go
-perm, err := client.WritePermission(ctx, &client.PermissionWriteRequest{
+perm, err := client.WritePermission(ctx, &anamericano.PermissionWriteRequest{
     ObjectNamespace: "document",
     ObjectID:        "eungyolee-teukcom",
     Relation:        "editor",
@@ -115,13 +191,13 @@ fmt.Printf("Created permission: %s\n", perm.String())
 
 **그룹 권한 업데이트:**
 ```go
-perm, err := client.WritePermission(ctx, &client.PermissionWriteRequest{
+perm, err := client.WritePermission(ctx, &anamericano.PermissionWriteRequest{
     ObjectNamespace: "document",
     ObjectID:        "eungyolee-teukcom",
     Relation:        "viewer",
     SubjectType:     "group",
     SubjectID:       "ana",
-    SubjectRelation: stringPtr("member"), // All group members
+    SubjectRelation: stringPtr("member"),
 })
 ```
 
@@ -130,7 +206,7 @@ perm, err := client.WritePermission(ctx, &client.PermissionWriteRequest{
 권한을 삭제합니다
 
 ```go
-err := client.DeletePermission(ctx, &client.PermissionDeleteRequest{
+err := client.DeletePermission(ctx, &anamericano.PermissionDeleteRequest{
     ObjectNamespace: "document",
     ObjectID:        "eungyolee-teukcom",
     Relation:        "viewer",
@@ -183,7 +259,7 @@ for _, docID := range docs {
 ```go
 resp, err := client.CheckPermission(ctx, req)
 if err != nil {
-    if apiErr, ok := err.(*client.APIError); ok {
+    if apiErr, ok := err.(*anamericano.APIError); ok {
         switch {
         case apiErr.IsUnauthorized():
             // API Token이 이상함
