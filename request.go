@@ -1,4 +1,4 @@
-package request
+package anamericano
 
 // PermissionCheckRequest 권한 확인 요청을 나타냅니다.
 // 주체(유저 또는 그룹)가 객체에 대해 특정 관계를 가지고 있는지 확인하는 데 사용됩니다.
