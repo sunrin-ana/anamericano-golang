@@ -220,7 +220,10 @@ err := client.DeletePermission(ctx, &anamericano.PermissionDeleteRequest{
 모든 권한을 읽습니다
 
 ```go
-perms, err := client.ReadPermissions(ctx, "document", "eungyolee-teukcom")
+perms, err := client.ReadPermissions(ctx, &anamericano.PermissionReadRequest{
+	ObjectNameSpace: "document",
+	ObjectID:        "eungyolee-teukcom",
+})
 for _, p := range perms {
     fmt.Printf("%s can %s\n", p.SubjectID, p.Relation)
 }
@@ -231,7 +234,11 @@ for _, p := range perms {
 특정 권한을 가진 모든 주체를 가져옵니다
 
 ```go
-subjects, err := client.ExpandPermissions(ctx, "document", "eungyolee-teukcom", "viewer")
+subjects, err := client.ExpandPermissions(ctx, &anamericano.PermissionExpendRequest{
+	ObjectNameSpace: "document",
+	ObjectID:        "eungyolee-teukcom",
+	Relation:        "viewer",
+})
 // Returns: ["user:eungyolee", "user:hanul", "group:ana#member"]
 
 for _, subject := range subjects {
@@ -244,7 +251,12 @@ for _, subject := range subjects {
 객체가 접근할 수 있는 모든 객체를 불러옵니다
 
 ```go
-docs, err := client.ListObjects(ctx, "user", "eungyolee", "viewer", "document")
+docs, err := client.ListObjects(ctx, &anamericano.ListObjectsRequest{
+	ObjectNameSpace: "document",
+	Relation:        "viewer",
+	SubjectType:     "user",
+	SubjectID:       "eungyolee",
+})
 // Returns: ["eungyolee-teukcom", "eungyolee-babo", "eungyolee-kimanjja"]
 
 for _, docID := range docs {
