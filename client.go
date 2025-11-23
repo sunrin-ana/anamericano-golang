@@ -3,7 +3,6 @@ package anamericano
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -60,22 +59,6 @@ func (b *BearerTokenAuth) Authenticate(req *http.Request) error {
 		return fmt.Errorf("bearer token is empty")
 	}
 	req.Header.Set("Authorization", "Bearer "+b.Token)
-	return nil
-}
-
-// BasicAuth 기본 인증
-type BasicAuth struct {
-	ClientID     string
-	ClientSecret string
-}
-
-// Authenticate 요청에 기본 인증 자격 증명을 추가합니다
-func (b *BasicAuth) Authenticate(req *http.Request) error {
-	if b.ClientID == "" || b.ClientSecret == "" {
-		return fmt.Errorf("client credentials are empty")
-	}
-	auth := base64.StdEncoding.EncodeToString([]byte(b.ClientID + ":" + b.ClientSecret))
-	req.Header.Set("Authorization", "Basic "+auth)
 	return nil
 }
 
