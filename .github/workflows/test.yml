@@ -1,0 +1,30 @@
+name: Go Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Install dependencies
+      run: go get .
+
+    - name: Build
+      run: go build -v ./...
+    
+    - name: Coverage
+      run: go test -cover ./...
+
+    - name: Test with the Go CLI
+      run: go test -v ./...
