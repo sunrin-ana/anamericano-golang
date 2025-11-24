@@ -3,7 +3,6 @@ package anamericano
 import (
 	"context"
 	"fmt"
-	"github.com/sunrin-ana/anamericano-golang/request"
 )
 
 // PermissionCheckResponse 권한 확인 응답을 나타냅니다
@@ -64,7 +63,7 @@ func (p *Permission) String() string {
 //	if resp.Allowed {
 //	    fmt.Println("권한이 허용되었습니다")
 //	}
-func (c *Client) CheckPermission(ctx context.Context, req *request.PermissionCheckRequest) (*PermissionCheckResponse, error) {
+func (c *Client) CheckPermission(ctx context.Context, req *PermissionCheckRequest) (*PermissionCheckResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("permission check request is nil")
 	}
@@ -94,7 +93,7 @@ func (c *Client) CheckPermission(ctx context.Context, req *request.PermissionChe
 //	    SubjectID:       "koyun",
 //	}
 //	perm, err := client.WritePermission(ctx, req)
-func (c *Client) WritePermission(ctx context.Context, req *request.PermissionWriteRequest) (*Permission, error) {
+func (c *Client) WritePermission(ctx context.Context, req *PermissionWriteRequest) (*Permission, error) {
 	if req == nil {
 		return nil, fmt.Errorf("permission write request is nil")
 	}
@@ -124,7 +123,7 @@ func (c *Client) WritePermission(ctx context.Context, req *request.PermissionWri
 //	    SubjectID:       "hanul",
 //	}
 //	err := client.DeletePermission(ctx, req)
-func (c *Client) DeletePermission(ctx context.Context, req *request.PermissionDeleteRequest) error {
+func (c *Client) DeletePermission(ctx context.Context, req *PermissionDeleteRequest) error {
 	if req == nil {
 		return fmt.Errorf("permission delete request is nil")
 	}
@@ -144,7 +143,7 @@ func (c *Client) DeletePermission(ctx context.Context, req *request.PermissionDe
 //	for _, p := range perms {
 //	    fmt.Printf("%s:%s가 %s 권한을 가지고 있습니다\n", p.SubjectType, p.SubjectID, p.Relation)
 //	}
-func (c *Client) ReadPermissions(ctx context.Context, req *request.PermissionReadRequest) ([]Permission, error) {
+func (c *Client) ReadPermissions(ctx context.Context, req *PermissionReadRequest) ([]Permission, error) {
 	if req == nil {
 		return nil, fmt.Errorf("permission read request is nil")
 	}
@@ -165,7 +164,7 @@ func (c *Client) ReadPermissions(ctx context.Context, req *request.PermissionRea
 //
 //	subjects, err := client.ExpandPermissions(ctx, "document", "doc1", "viewer")
 //	// 반환값: ["user:hanul", "user:koyun", "group:ana#member"]
-func (c *Client) ExpandPermissions(ctx context.Context, req *request.PermissionExpendRequest) ([]string, error) {
+func (c *Client) ExpandPermissions(ctx context.Context, req *PermissionExpendRequest) ([]string, error) {
 	if req == nil {
 		return nil, fmt.Errorf("permission expend request is nil")
 	}
@@ -186,7 +185,7 @@ func (c *Client) ExpandPermissions(ctx context.Context, req *request.PermissionE
 //
 //	objects, err := client.ListObjects(ctx, "user", "hanul", "viewer", "document")
 //	// 반환값: ["doc1", "doc2", "doc5"]
-func (c *Client) ListObjects(ctx context.Context, req *request.ListObjectsRequest) ([]string, error) {
+func (c *Client) ListObjects(ctx context.Context, req *ListObjectsRequest) ([]string, error) {
 	if req == nil {
 		return nil, fmt.Errorf("permission list request is nil")
 	}
