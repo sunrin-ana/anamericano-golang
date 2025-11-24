@@ -2,9 +2,9 @@ name: Go Build and Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   build-and-test:
@@ -19,7 +19,7 @@ jobs:
 
     - name: Install dependencies
       run: go get .
-      
+
     - name: Build
       run: go build -v ./...
 
