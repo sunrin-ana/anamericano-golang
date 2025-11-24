@@ -307,3 +307,8 @@ MIT License
 
 ### v0.0.3 (2025-11-23)
 - Refactored library
+
+### v0.0.4 (2025-11-24)
+- Reverted Structure
+- migration to fasthttp from net/http
+- Memeory leak fix
